@@ -193,7 +193,7 @@ class NumpyFrame:
                     levels = set(row[col] for row in df)
                     self._factors[self._columns[col]] = list(levels)
 
-            self._data = np.empty((len(df), len(self._columns)))
+            self._data = np.empty((len(df), len(self._columns)), dtype=np.float64)
             df = [self._columns] + df
         elif isinstance(h2o_frame, h2o.H2OFrame):
             _is_factor = np.array(h2o_frame.isfactor(), dtype=np.bool) | np.array(
@@ -214,17 +214,20 @@ class NumpyFrame:
                 self._data[:, idx] = np.array(
                     [float(convertor.get(
                         row[idx] if not (len(row) == 0 or row[idx] == "") else "nan", "nan"))
-                        for row in df[1:]], dtype=np.float32)
+                        for row in df[1:]], dtype=np.float64)
             elif _is_numeric[idx]:
                 self._data[:, idx] = np.array(
                     [float(row[idx] if not (len(row) == 0 or row[idx] == "") else "nan") for row in
                      df[1:]],
-                    dtype=np.float32)
+                    dtype=np.float64)
             else:
                 try:
-                    self._data[:, idx] = np.array([row[idx] if not (len(row) == 0 or row[idx] == "")
-                                                   else "nan" for row in df[1:]],
-                                                  dtype=np.datetime64)
+                    self._data[:, idx] = np.array([row[idx]
+                                                   if not (
+                            len(row) == 0 or
+                            row[idx] == "" or
+                            row[idx].lower() == "nan"
+                    ) else "nan" for row in df[1:]], dtype=np.float64)
                 except Exception:
                     raise RuntimeError("Unexpected type of column {}!".format(col))
 
@@ -835,10 +838,9 @@ def shap_explain_row_plot(
         plt.axvline(prediction, label="Prediction")
         plt.axvline(bias, linestyle="dotted", color="gray", label="Bias")
         plt.vlines(contributions["cummulative_value"][1:],
-                   ymin=[y - 0.4 for y in range(contributions["value"].shape[0] - 1)],
-                   ymax=[y + 1.4 for y in range(contributions["value"].shape[0] - 1)],
-                   color="k")
-
+                   ymin=[y - 0.4 for y in range(contributions["value"].shape[0]-1)],
+                   ymax=[y + 1.4 for y in range(contributions["value"].shape[0]-1)],
+                   color="black")
         plt.legend()
         plt.grid(True)
         xlim = plt.xlim()
@@ -912,13 +914,15 @@ def _add_histogram(frame, column, add_rug=True, add_histogram=True, levels_order
         if nf.isfactor(column):
             cnt = Counter(nf[column][np.isfinite(nf[column])])
             hist_x = np.array(list(cnt.keys()), dtype=float)
+            tick_x = hist_x
             hist_y = np.array(list(cnt.values()), dtype=float)
             width = 1
         else:
             hist_y, hist_x = np.histogram(
                 mapping(nf[column][np.isfinite(nf[column])]),
                 bins=20)
-            hist_x = hist_x[:-1].astype(float)
+            tick_x = hist_x.astype(float)
+            hist_x = tick_x[:-1]
             hist_y = hist_y.astype(float)
             width = hist_x[1] - hist_x[0]
         plt.bar(mapping(hist_x),
@@ -928,6 +932,9 @@ def _add_histogram(frame, column, add_rug=True, add_histogram=True, levels_order
                 width=width, color="gray", alpha=0.2)
     if nf.isfactor(column):
         plt.xticks(mapping(range(nf.nlevels(column))), nf.levels(column))
+    elif frame.type(column) == "time":
+        plt.xticks(tick_x, [np.datetime64(int(x), "ms") for x in tick_x])
+        plt.gcf().autofmt_xdate()
     plt.ylim(ylims)
 
 
