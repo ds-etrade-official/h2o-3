@@ -508,6 +508,7 @@ with_no_h2o_progress <- function(expr) {
                        leaderboard)
   leaderboard <- leaderboard[order(leaderboard[[2]]),]
   names(leaderboard) <- tolower(names(leaderboard))
+  row.names(leaderboard) <- seq_len(nrow(leaderboard))
   return(head(leaderboard, n = min(top_n, nrow(leaderboard))))
 }
 
@@ -1954,11 +1955,19 @@ h2o.pd_plot <- function(object,
   if (is.null(row_index))
     row_index <- -1
   models_info <- .process_models_or_automl(object, newdata, require_single_model = TRUE)
+
+  col_name <- make.names(column)
+  rug_data <- stats::setNames(as.data.frame(newdata[[column]]), col_name)
+  rug_data[["text"]] <- paste0("Feature Value: ", format(rug_data[[col_name]]))
+  row_val <- rug_data[row_index, col_name]
+
   if (h2o.nlevels(newdata[[column]]) > max_levels) {
     factor_frequencies <- .get_feature_count(newdata[[column]])
     factors_to_merge <- tail(names(factor_frequencies), n = -max_levels)
     newdata[[column]] <- ifelse(newdata[[column]] %in% factors_to_merge, NA_character_,
                                 newdata[[column]])
+    rug_data <- rug_data[!rug_data[[col_name]] %in% factors_to_merge, ]
+
     message(length(factor_frequencies) - max_levels, " least common factor levels were omitted from \"",
             column, "\" feature.")
   }
@@ -1996,9 +2005,6 @@ h2o.pd_plot <- function(object,
     }
     names(pdp) <- make.names(names(pdp))
 
-    col_name <- make.names(column)
-    rug_data <- stats::setNames(as.data.frame(newdata[[column]]), col_name)
-    rug_data[["text"]] <- paste0("Feature Value: ", format(rug_data[[col_name]]))
     y_range <- c(min(pdp$mean_response - pdp$stddev_response), max(pdp$mean_response + pdp$stddev_response))
 
     # Type information get's lost during the PD computation
@@ -2021,7 +2027,7 @@ h2o.pd_plot <- function(object,
       stat_count_or_bin(!.is_continuous(newdata[[column]]),
                         ggplot2::aes(x = .data[[col_name]], y = (.data$..count.. / max(.data$..count..)) * diff(y_range) / 1.61),
                         position = ggplot2::position_nudge(y = y_range[[1]] - 0.05 * diff(y_range)), alpha = 0.2,
-                        inherit.aes = FALSE, data = as.data.frame(newdata[[column]])) +
+                        inherit.aes = FALSE, data = rug_data[, col_name, drop=FALSE]) +
       geom_point_or_line(!.is_continuous(newdata[[column]]), ggplot2::aes(group = .data$target)) +
       geom_pointrange_or_ribbon(!.is_continuous(newdata[[column]]), ggplot2::aes(
         ymin = .data$mean_response - .data$stddev_response,
@@ -2033,7 +2039,6 @@ h2o.pd_plot <- function(object,
                         data = rug_data
       )
     if (row_index > -1) {
-      row_val <- rug_data[row_index, col_name]
       if ("POSIXct" %in% class(row_val))
         row_val <- as.numeric(row_val)
       p <- p + ggplot2::geom_vline(xintercept = row_val, linetype = "dashed")
@@ -2141,18 +2146,6 @@ h2o.pd_multi_plot <- function(object,
   if (is.null(row_index))
     row_index <- -1
   models_info <- .process_models_or_automl(object, newdata, best_of_family = best_of_family)
-  if (h2o.nlevels(newdata[[column]]) > max_levels) {
-    factor_frequencies <- .get_feature_count(newdata[[column]])
-    factors_to_merge <- tail(names(factor_frequencies), n = -max_levels)
-    newdata[[column]] <- ifelse(newdata[[column]] %in% factors_to_merge, NA_character_,
-                                newdata[[column]])
-    message(length(factor_frequencies) - max_levels, " least common factor levels were omitted from \"",
-            column, "\" feature.")
-  }
-  margin <- ggplot2::margin(5.5, 5.5, 5.5, 5.5)
-  if (h2o.isfactor(newdata[[column]]))
-    margin <- ggplot2::margin(5.5, 5.5, 5.5, max(5.5, max(nchar(h2o.levels(newdata[[column]])))))
-
   if (length(models_info$model_ids) == 1)
     return(h2o.pd_plot(
       object = object,
@@ -2161,6 +2154,25 @@ h2o.pd_multi_plot <- function(object,
       target = target,
       row_index = row_index,
       max_levels = max_levels))
+
+  col_name <- make.names(column)
+  rug_data <- stats::setNames(as.data.frame(newdata[[column]]), col_name)
+  rug_data[["text"]] <- paste0("Feature Value: ", format(rug_data[[col_name]]))
+  row_val <- rug_data[row_index, col_name]
+
+  if (h2o.nlevels(newdata[[column]]) > max_levels) {
+    factor_frequencies <- .get_feature_count(newdata[[column]])
+    factors_to_merge <- tail(names(factor_frequencies), n = -max_levels)
+    newdata[[column]] <- ifelse(newdata[[column]] %in% factors_to_merge, NA_character_,
+                                newdata[[column]])
+    rug_data <- rug_data[!rug_data[[col_name]] %in% factors_to_merge, ]
+
+    message(length(factor_frequencies) - max_levels, " least common factor levels were omitted from \"",
+            column, "\" feature.")
+  }
+  margin <- ggplot2::margin(5.5, 5.5, 5.5, 5.5)
+  if (h2o.isfactor(newdata[[column]]))
+    margin <- ggplot2::margin(5.5, 5.5, 5.5, max(5.5, max(nchar(h2o.levels(newdata[[column]])))))
 
   with_no_h2o_progress({
     results <- NULL
@@ -2198,16 +2210,11 @@ h2o.pd_multi_plot <- function(object,
                            timevar = "model_id"
     )
 
-    col_name <- make.names(column)
-
     data[["text"]] <- paste0(
       "Model Id: ", data[["model_id"]], "\n",
       "Feature Value: ", format(data[[col_name]]), "\n",
       "Mean Response: ", data[["values"]], "\n"
     )
-
-    rug_data <- stats::setNames(as.data.frame(newdata[[column]]), col_name)
-    rug_data[["text"]] <- paste0("Feature Value: ", format(rug_data[[col_name]]))
     y_range <- range(data$values)
 
     p <- ggplot2::ggplot(ggplot2::aes(
@@ -2220,14 +2227,13 @@ h2o.pd_multi_plot <- function(object,
       stat_count_or_bin(!.is_continuous(newdata[[column]]),
                         ggplot2::aes(x = .data[[col_name]], y = (.data$..count.. / max(.data$..count..)) * diff(y_range) / 1.61),
                         position = ggplot2::position_nudge(y = y_range[[1]] - 0.05 * diff(y_range)), alpha = 0.2,
-                        inherit.aes = FALSE, data = as.data.frame(newdata[[column]])) +
+                        inherit.aes = FALSE, data = rug_data[, col_name, drop=FALSE]) +
       geom_point_or_line(!.is_continuous(newdata[[column]]), ggplot2::aes(group = .shorten_model_ids(.data$model_id))) +
       ggplot2::geom_rug(ggplot2::aes(x = .data[[col_name]], y = NULL),
                         sides = "b", alpha = 0.1, color = "black",
                         data = rug_data
       )
     if (row_index > -1) {
-      row_val <- rug_data[row_index, col_name]
       if ("POSIXct" %in% class(row_val))
         row_val <- as.numeric(row_val)
       p <- p + ggplot2::geom_vline(xintercept = row_val, linetype = "dashed")
@@ -2326,14 +2332,21 @@ h2o.ice_plot <- function(model,
 
   models_info <- .process_models_or_automl(model, newdata, require_single_model = TRUE)
 
+  col_name <- make.names(column)
+  rug_data <- stats::setNames(as.data.frame(newdata[[column]]), col_name)
+  rug_data[["text"]] <- paste0("Feature Value: ", format(rug_data[[col_name]]))
+
   with_no_h2o_progress({
     if (h2o.nlevels(newdata[[column]]) > max_levels) {
       factor_frequencies <- .get_feature_count(newdata[[column]])
       factors_to_merge <- tail(names(factor_frequencies), n = -max_levels)
       newdata[[column]] <- ifelse(newdata[[column]] %in% factors_to_merge, NA_character_,
                                   newdata[[column]])
+      rug_data <- rug_data[!rug_data[[col_name]] %in% factors_to_merge, ]
+
       message(length(factor_frequencies) - max_levels, " least common factor levels were omitted from \"",
-              column, "\" feature.") }
+              column, "\" feature.")
+    }
 
     margin <- ggplot2::margin(16.5, 5.5, 5.5, 5.5)
     if (h2o.isfactor(newdata[[column]]))
@@ -2382,8 +2395,6 @@ h2o.ice_plot <- function(model,
     pdp[["name"]] <- "mean response"
     names(pdp) <- make.names(names(pdp))
 
-    col_name <- make.names(column)
-
     if (is.character(results[[col_name]]) || is.character(pdp[[col_name]])) {
       pdp[[col_name]] <- as.factor(pdp[[col_name]])
       results[[col_name]] <- as.factor(results[[col_name]])
@@ -2416,7 +2427,7 @@ h2o.ice_plot <- function(model,
       stat_count_or_bin(!.is_continuous(newdata[[column]]),
                         ggplot2::aes(x = .data[[col_name]], y = (.data$..count.. / max(.data$..count..)) * diff(y_range) / 1.61),
                         position = ggplot2::position_nudge(y = y_range[[1]] - 0.05 * diff(y_range)), alpha = 0.2,
-                        inherit.aes = FALSE, data = as.data.frame(newdata[[column]])) +
+                        inherit.aes = FALSE, data = rug_data[, col_name, drop=FALSE]) +
       geom_point_or_line(!.is_continuous(newdata[[column]]), ggplot2::aes(group = .data$name)) +
       geom_point_or_line(!.is_continuous(newdata[[column]]),
                          if (is.factor(pdp[[col_name]])) {
@@ -2428,7 +2439,7 @@ h2o.ice_plot <- function(model,
       ) +
       ggplot2::geom_rug(ggplot2::aes(x = .data[[col_name]], y = NULL, text = NULL),
                         sides = "b", alpha = 0.1, color = "black",
-                        data = stats::setNames(as.data.frame(newdata[[column]]), col_name)
+                        data = rug_data
       ) +
       ggplot2::labs(y = "Response", title = sprintf(
         "Individual Conditional Expectations on \"%s\"%s\nfor Model: \"%s\"", col_name,
