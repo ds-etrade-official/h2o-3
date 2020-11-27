@@ -1957,20 +1957,23 @@ h2o.pd_plot <- function(object,
   models_info <- .process_models_or_automl(object, newdata, require_single_model = TRUE)
 
   col_name <- make.names(column)
-  rug_data <- stats::setNames(as.data.frame(newdata[[column]]), col_name)
-  rug_data[["text"]] <- paste0("Feature Value: ", format(rug_data[[col_name]]))
-  row_val <- rug_data[row_index, col_name]
+  row_val <- if (row_index > -1) as.data.frame(newdata[row_index, col_name])[1, 1]
 
   if (h2o.nlevels(newdata[[column]]) > max_levels) {
     factor_frequencies <- .get_feature_count(newdata[[column]])
     factors_to_merge <- tail(names(factor_frequencies), n = -max_levels)
-    newdata[[column]] <- ifelse(newdata[[column]] %in% factors_to_merge, NA_character_,
-                                newdata[[column]])
-    rug_data <- rug_data[!rug_data[[col_name]] %in% factors_to_merge, ]
+    if (!is.null(row_val) && row_val %in% factors_to_merge) {
+      # Keep the factor that is in the instance that we do ICE for
+      factors_to_merge <- factors_to_merge[factors_to_merge != row_val]
+    }
+    newdata <- newdata[!newdata[[column]] %in% factors_to_merge, ]
 
-    message(length(factor_frequencies) - max_levels, " least common factor levels were omitted from \"",
+    message(length(factors_to_merge), " least common factor levels were omitted from \"",
             column, "\" feature.")
   }
+  rug_data <- stats::setNames(as.data.frame(newdata[[column]]), col_name)
+  rug_data[["text"]] <- paste0("Feature Value: ", format(rug_data[[col_name]]))
+
   margin <- ggplot2::margin(5.5, 5.5, 5.5, 5.5)
   if (h2o.isfactor(newdata[[column]]))
     margin <- ggplot2::margin(5.5, 5.5, 5.5, max(5.5, max(nchar(h2o.levels(newdata[[column]])))))
@@ -2004,6 +2007,10 @@ h2o.pd_plot <- function(object,
       pdp <- do.call(rbind, lapply(pdps, as.data.frame))
     }
     names(pdp) <- make.names(names(pdp))
+    if (is.factor(newdata[[column]])){
+      pdp[[col_name]] <- factor(pdp[[col_name]], levels = levels(rug_data[[col_name]]))
+      pdp <- pdp[pdp[[col_name]] %in% levels(rug_data[[col_name]]), ]
+    }
 
     y_range <- c(min(pdp$mean_response - pdp$stddev_response), max(pdp$mean_response + pdp$stddev_response))
 
@@ -2156,20 +2163,22 @@ h2o.pd_multi_plot <- function(object,
       max_levels = max_levels))
 
   col_name <- make.names(column)
-  rug_data <- stats::setNames(as.data.frame(newdata[[column]]), col_name)
-  rug_data[["text"]] <- paste0("Feature Value: ", format(rug_data[[col_name]]))
-  row_val <- rug_data[row_index, col_name]
+  row_val <- if (row_index > -1) as.data.frame(newdata[row_index, col_name])[1, 1]
 
   if (h2o.nlevels(newdata[[column]]) > max_levels) {
     factor_frequencies <- .get_feature_count(newdata[[column]])
     factors_to_merge <- tail(names(factor_frequencies), n = -max_levels)
-    newdata[[column]] <- ifelse(newdata[[column]] %in% factors_to_merge, NA_character_,
-                                newdata[[column]])
-    rug_data <- rug_data[!rug_data[[col_name]] %in% factors_to_merge, ]
+    if (!is.null(row_val) && row_val %in% factors_to_merge) {
+      # Keep the factor that is in the instance that we do ICE for
+      factors_to_merge <- factors_to_merge[factors_to_merge != row_val]
+    }
+    newdata <- newdata[!newdata[[column]] %in% factors_to_merge, ]
 
-    message(length(factor_frequencies) - max_levels, " least common factor levels were omitted from \"",
+    message(length(factors_to_merge), " least common factor levels were omitted from \"",
             column, "\" feature.")
   }
+  rug_data <- stats::setNames(as.data.frame(newdata[[column]]), col_name)
+  rug_data[["text"]] <- paste0("Feature Value: ", format(rug_data[[col_name]]))
   margin <- ggplot2::margin(5.5, 5.5, 5.5, 5.5)
   if (h2o.isfactor(newdata[[column]]))
     margin <- ggplot2::margin(5.5, 5.5, 5.5, max(5.5, max(nchar(h2o.levels(newdata[[column]])))))
@@ -2200,6 +2209,10 @@ h2o.pd_multi_plot <- function(object,
         names(results) <- make.names(names(results))
       }
       results[[model]] <- pdp$mean_response
+    }
+    if (is.factor(newdata[[column]])){
+      results[[col_name]] <- factor(results[[col_name]], levels = levels(rug_data[[col_name]]))
+      results <- results[results[[col_name]] %in% levels(rug_data[[col_name]]), ]
     }
 
     data <- stats::reshape(results,
@@ -2333,20 +2346,19 @@ h2o.ice_plot <- function(model,
   models_info <- .process_models_or_automl(model, newdata, require_single_model = TRUE)
 
   col_name <- make.names(column)
-  rug_data <- stats::setNames(as.data.frame(newdata[[column]]), col_name)
-  rug_data[["text"]] <- paste0("Feature Value: ", format(rug_data[[col_name]]))
 
   with_no_h2o_progress({
     if (h2o.nlevels(newdata[[column]]) > max_levels) {
       factor_frequencies <- .get_feature_count(newdata[[column]])
       factors_to_merge <- tail(names(factor_frequencies), n = -max_levels)
-      newdata[[column]] <- ifelse(newdata[[column]] %in% factors_to_merge, NA_character_,
-                                  newdata[[column]])
-      rug_data <- rug_data[!rug_data[[col_name]] %in% factors_to_merge, ]
+      newdata <- newdata[!newdata[[column]] %in% factors_to_merge, ]
 
       message(length(factor_frequencies) - max_levels, " least common factor levels were omitted from \"",
               column, "\" feature.")
     }
+
+    rug_data <- stats::setNames(as.data.frame(newdata[[column]]), col_name)
+    rug_data[["text"]] <- paste0("Feature Value: ", format(rug_data[[col_name]]))
 
     margin <- ggplot2::margin(16.5, 5.5, 5.5, 5.5)
     if (h2o.isfactor(newdata[[column]]))
@@ -2396,8 +2408,10 @@ h2o.ice_plot <- function(model,
     names(pdp) <- make.names(names(pdp))
 
     if (is.character(results[[col_name]]) || is.character(pdp[[col_name]])) {
-      pdp[[col_name]] <- as.factor(pdp[[col_name]])
-      results[[col_name]] <- as.factor(results[[col_name]])
+      pdp[[col_name]] <- factor(pdp[[col_name]], levels = levels(rug_data[[col_name]]))
+      pdp <- pdp[pdp[[col_name]] %in% levels(rug_data[[col_name]]), ]
+      results[[col_name]] <- factor(results[[col_name]], levels = levels(rug_data[[col_name]]))
+      results <- results[results[[col_name]] %in% levels(rug_data[[col_name]]), ]
     }
     # Type information get's lost during the PD computation
     if (attr(newdata, "types")[column == names(newdata)] == "time") {
