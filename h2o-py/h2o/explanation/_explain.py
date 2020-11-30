@@ -954,7 +954,7 @@ def _add_histogram(frame, column, add_rug=True, add_histogram=True, levels_order
         # and gives hard to decode errors
         plt.xlim(max(0, tick_x.min() - offset), tick_x.max() + offset)
         locator = mdates.AutoDateLocator()
-        formatter = mdates.ConciseDateFormatter(locator)
+        formatter = mdates.AutoDateFormatter(locator)
         plt.gca().xaxis.set_major_locator(locator)
         plt.gca().xaxis.set_major_formatter(formatter)
         plt.gcf().autofmt_xdate()
