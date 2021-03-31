@@ -1321,6 +1321,8 @@ def ice_plot(
                 )[0]
             )
             encoded_col = tmp.columns[0]
+            if frame.type(column) == "time":
+                tmp[encoded_col] /= 1000 * 3600 * 24  # convert to fractions of days for matplotlib
             if is_factor:
                 plt.scatter(factor_map(tmp.get(encoded_col)), tmp["mean_response"],
                             color=[colors[i]],

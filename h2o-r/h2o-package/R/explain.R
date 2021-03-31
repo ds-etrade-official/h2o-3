@@ -1957,7 +1957,7 @@ h2o.pd_plot <- function(object,
   models_info <- .process_models_or_automl(object, newdata, require_single_model = TRUE)
 
   col_name <- make.names(column)
-  row_val <- if (row_index > -1) as.data.frame(newdata[row_index, col_name])[1, 1]
+  row_val <- if (row_index > -1) as.data.frame(newdata[row_index, column])[1, 1]
 
   if (h2o.nlevels(newdata[[column]]) > max_levels) {
     factor_frequencies <- .get_feature_count(newdata[[column]])
@@ -2163,7 +2163,7 @@ h2o.pd_multi_plot <- function(object,
       max_levels = max_levels))
 
   col_name <- make.names(column)
-  row_val <- if (row_index > -1) as.data.frame(newdata[row_index, col_name])[1, 1]
+  row_val <- if (row_index > -1) as.data.frame(newdata[row_index, column])[1, 1]
 
   if (h2o.nlevels(newdata[[column]]) > max_levels) {
     factor_frequencies <- .get_feature_count(newdata[[column]])
