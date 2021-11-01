@@ -623,6 +623,9 @@ def test_explanation_timeseries():
     x = ["MONTH", "LIMIT_BAL", "SEX", "EDUCATION", "MARRIAGE", "AGE", "PAY_STATUS", "PAY_AMT", "BILL_AMT"]
     y = "DEFAULT_PAYMENT_NEXT_MONTH"
 
+    # Make sure it works with missing values as well
+    train[[5, 7, 11, 13, 17], "MONTH"] = float("nan")
+
     cols_to_test = []
     for col, typ in train.types.items():
         for ctt in cols_to_test:

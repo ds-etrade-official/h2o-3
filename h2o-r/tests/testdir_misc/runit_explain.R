@@ -583,6 +583,7 @@ explanation_test_timeseries <- function() {
   x <- c("MONTH", "LIMIT_BAL", "SEX", "EDUCATION", "MARRIAGE", "AGE", "PAY_STATUS", "PAY_AMT", "BILL_AMT")
   y <- "DEFAULT_PAYMENT_NEXT_MONTH"
 
+  train[c(5, 7, 11, 13, 17), "MONTH"] <- NA
 
   col_types <- setNames(unlist(h2o.getTypes(train)), names(train))
   col_types <- col_types[names(col_types) %in% x]

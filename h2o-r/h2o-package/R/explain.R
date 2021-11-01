@@ -1186,7 +1186,7 @@ h2o.shap_summary_plot <-
       timevar = "feature"
     )
     values[["original_value"]] <- stats::reshape(
-      data.frame(apply(newdata_df, 2, as.character)),
+      data.frame(apply(newdata_df, 2, format)),
       direction = "long",
       varying = names(newdata_df),
       v.names = "original_value",
@@ -1435,12 +1435,12 @@ h2o.shap_explain_row_plot <-
       contributions <- data.frame(contribution = t(contributions))
       contributions$feature <- paste0(
         row.names(contributions), "=",
-        sapply(newdata_df[, row.names(contributions)], as.character)
+        sapply(newdata_df[, row.names(contributions)], format)
       )
       contributions <- contributions[order(contributions$contribution),]
       contributions$text <- paste(
         "Feature:", row.names(contributions), "\n",
-        "Feature Value:", unlist(sapply(newdata_df[, row.names(contributions)], as.character)), "\n",
+        "Feature Value:", unlist(sapply(newdata_df[, row.names(contributions)], format)), "\n",
         "Contribution:", contributions$contribution
       )
 
@@ -1454,7 +1454,7 @@ h2o.shap_explain_row_plot <-
           y = "SHAP Contribution", x = "Feature",
           title = sprintf(
             "SHAP explanation\nfor \"%s\" on row %d\nprediction: %s",
-            model@model_id, row_index, as.character(prediction$predict)
+            model@model_id, row_index, format(prediction$predict)
           )
         ) +
         ggplot2::theme_bw() +
@@ -1513,7 +1513,7 @@ h2o.shap_explain_row_plot <-
       )
 
       newdata_df[["rest_of_the_features"]] <- NA
-      contributions$feature_value <- paste("Feature Value:", as.character(t(newdata_df)[contributions$feature,]))
+      contributions$feature_value <- paste("Feature Value:", format(t(newdata_df)[contributions$feature,]))
       p <- ggplot2::ggplot(ggplot2::aes(
         x = .data$feature, fill = .data$color,
         xmin = .data$id - 0.4, xmax = .data$id + 0.4,
