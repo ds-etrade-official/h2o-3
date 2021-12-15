@@ -2270,6 +2270,25 @@ public class DeepLearningModel extends Model<DeepLearningModel,DeepLearningModel
       }
     }
 
+    @Override
+    public DistributionFamily[] supportedDistributions() {
+      return new DistributionFamily[] {
+              DistributionFamily.AUTO,
+              DistributionFamily.bernoulli,
+             // DistributionFamily.quasibinomial, // UNSUPPORTED
+              DistributionFamily.multinomial,
+              DistributionFamily.gaussian,
+              DistributionFamily.poisson,
+              DistributionFamily.gamma,
+              DistributionFamily.laplace,
+              DistributionFamily.quantile,
+              DistributionFamily.huber,
+             // DistributionFamily.modified_huber,
+              DistributionFamily.tweedie,
+            //  DistributionFamily.ordinal,
+             // DistributionFamily.custom, // UNSUPPORTED
+      };
+    }
   }
 
   @Override
