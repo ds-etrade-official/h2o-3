@@ -50,6 +50,32 @@ public class GamMojoModelTest {
       Scope.exit();
     }
   }
+
+  // test and make sure that quasibinomial mojo with I-spline works
+  @Test
+  public void testISQuasibinomial() {
+    Scope.enter();
+    try {
+      final Frame fr = Scope.track(parseTestFile("smalldata/glm_test/prostate_cat_replaced.csv"));
+      DKV.put(fr);
+      final GAMModel.GAMParameters params = new GAMModel.GAMParameters();
+      params._response_column = "CAPSULE";
+      params._family = quasibinomial;
+      params._ignored_columns = new String[]{"ID"};
+      params._gam_columns = new String[][]{{"PSA"}};
+      params._num_knots = new int[]{5};
+      params._train = fr._key;
+      params._bs = new int[]{2};
+      params._spline_orders = new int[]{3};
+      params._link = GLMModel.GLMParameters.Link.logit;
+      final GAMModel model = new GAM(params).trainModel().get();
+      Frame predictFrame = Scope.track(model.score(fr));
+      Scope.track_generic(model);
+      assertTrue(model.testJavaScoring(fr, predictFrame, _tol));
+    } finally {
+      Scope.exit();
+    }
+  }
   
   // test and make sure the h2opredict, mojo predict agrees with binomial dataset that includes
   // both enum and numerical datasets for the binomial family
