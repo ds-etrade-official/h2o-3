@@ -43,6 +43,7 @@ import water.util.*;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.*;
+import java.util.stream.DoubleStream;
 
 import static hex.ModelMetrics.calcVarImp;
 import static hex.glm.ComputationState.extractSubRange;
@@ -193,6 +194,25 @@ public class GLM extends ModelBuilder<GLMModel,GLMParameters,GLMOutput> {
           break;
         }
       }
+
+    // Get the average number of iterations and set it as the _max_iterations
+    int finalBestId = bestId;
+    double[] iterations = Arrays.stream(cvModelBuilders)
+            .mapToDouble(cv -> {
+              GLM g = (GLM) cv;
+              if (g._model._output._submodels[finalBestId] != null)
+                return cvModelBuilders.length/(double)(cvModelBuilders.length - 1)  * // Adjust to allow proportionally more iteration to the more data main model is given
+                        g._model._output._submodels[finalBestId].iteration;
+              return Double.NaN;
+            }).filter(Double::isFinite)
+            .toArray();
+
+    _parms._max_iterations = (int) Math.ceil(
+            DoubleStream.of(iterations)
+                    .average()
+                    .orElse(_parms._max_iterations)
+    );
+
       for (int i = 0; i < cvModelBuilders.length; ++i) {
         GLM g = (GLM) cvModelBuilders[i];
         if (g._toRemove != null)
