@@ -46,7 +46,7 @@ def test_gam_cv_fold_columns():
                                                 knot_ids=[frameKnots1.key, frameKnots2.key, frameKnots3.key],
                                                 nfolds=5,
                                                 seed=1234,
-                                                fold_assignment='modulo')
+                                                fold_assignment='random')
 
     h2o_model.train(x=x, y=y, training_frame=train)
 
@@ -60,6 +60,7 @@ def test_gam_cv_fold_columns():
     h2o_model_fold_column = H2OGeneralizedAdditiveEstimator(family='multinomial',
                                                             gam_columns=["C6", "C7", "C8"],
                                                             scale=[1, 1, 1],
+                                                            seed=1234,
                                                             num_knots=numKnots,
                                                             knot_ids=[frameKnots1.key, frameKnots2.key,
                                                                       frameKnots3.key])
