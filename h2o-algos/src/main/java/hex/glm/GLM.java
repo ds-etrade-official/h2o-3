@@ -201,8 +201,7 @@ public class GLM extends ModelBuilder<GLMModel,GLMParameters,GLMOutput> {
             .mapToDouble(cv -> {
               GLM g = (GLM) cv;
               if (g._model._output._submodels[finalBestId] != null)
-                return cvModelBuilders.length/(double)(cvModelBuilders.length - 1)  * // Adjust to allow proportionally more iteration to the more data main model is given
-                        g._model._output._submodels[finalBestId].iteration;
+                return g._model._output._submodels[finalBestId].iteration;
               return Double.NaN;
             }).filter(Double::isFinite)
             .toArray();
