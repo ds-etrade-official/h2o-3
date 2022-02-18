@@ -210,7 +210,7 @@ public class GLM extends ModelBuilder<GLMModel,GLMParameters,GLMOutput> {
             DoubleStream.of(iterations)
                     .average()
                     .orElse(_parms._max_iterations)
-    );
+    ) * Math.max(1, 1+_parms._alpha.length);
 
       for (int i = 0; i < cvModelBuilders.length; ++i) {
         GLM g = (GLM) cvModelBuilders[i];
@@ -2675,7 +2675,7 @@ public class GLM extends ModelBuilder<GLMModel,GLMParameters,GLMOutput> {
         for (int i = lambdaStart; i < _parms._lambda.length; ++i) {  // for lambda search, can quit before it is done
           if (_job.stop_requested() || (timeout() && _model._output._submodels.length > 0))
             break;  //need at least one submodel on timeout to avoid issues.
-          if (_parms._max_iterations != -1 && _state._iter > _parms._max_iterations)
+          if (_parms._max_iterations != -1 && _state._iter >= _parms._max_iterations)
             break;  // iterations accumulate across all lambda/alpha values when coldstart = false
           if ((!_parms._HGLM && (_parms._cold_start || (!_parms._lambda_search && _parms._cold_start))) && (i > 0)
                   && !_checkPointFirstIter) // default: cold_start for non lambda_search
