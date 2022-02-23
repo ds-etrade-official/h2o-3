@@ -158,9 +158,14 @@ public class GLM extends ModelBuilder<GLMModel,GLMParameters,GLMOutput> {
       _xval_sd = new double[_parms._lambda.length * _parms._alpha.length];
       double bestTestDev = Double.POSITIVE_INFINITY;
       int lmin_max = 0;
+      int lmin = Integer.MAX_VALUE;
+      for (int i = 0; i < cvModelBuilders.length; ++i) {  // find the lowest number of trained submodels
+        GLM g = (GLM) cvModelBuilders[i];
+        lmin = Math.min(lmin, g._model._output._submodels.length);
+      }
       for (int i = 0; i < cvModelBuilders.length; ++i) {  // find the highest best_submodel_idx we need to go through
         GLM g = (GLM) cvModelBuilders[i];
-        lmin_max = Math.max(lmin_max, g._model._output._selected_submodel_idx);
+        lmin_max = Math.max(lmin_max, Math.min(g._model._output._selected_submodel_idx, lmin));
       }
       int lidx = 0; // index into submodel
       int bestId = 0;   // submodel indedx with best Deviance from xval
@@ -171,10 +176,13 @@ public class GLM extends ModelBuilder<GLMModel,GLMParameters,GLMOutput> {
         for (int i = 0; i < cvModelBuilders.length; ++i) {  // run cv for each lambda value
           GLM g = (GLM) cvModelBuilders[i];
           if (g._model._output._submodels[lidx] != null) {
-            double lambda = g._model._output._submodels[lidx].lambda_value;
-            g._insideCVCheck = true;
-            g._driver.computeSubmodel(lidx, lambda, Double.NaN, Double.NaN);
-            g._insideCVCheck = false;
+            // There seems to be no need of running computeSubmodel if we are going to obey the following
+            // assertion lidx < g._model._output._submodels.length.
+
+//            double lambda = g._model._output._submodels[lidx].lambda_value;
+//            g._insideCVCheck = true;
+//            g._driver.computeSubmodel(lidx, lambda, Double.NaN, Double.NaN);
+//            g._insideCVCheck = false;
             testDev += g._model._output._submodels[lidx].devianceValid;
             testDevSq += g._model._output._submodels[lidx].devianceValid * g._model._output._submodels[lidx].devianceValid;
           }
