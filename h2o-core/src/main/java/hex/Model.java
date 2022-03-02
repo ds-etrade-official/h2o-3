@@ -375,7 +375,7 @@ public abstract class Model<M extends Model<M,P,O>, P extends Model.Parameters, 
       }
     }
     
-    public Key<ModelPreprocessor>[] _preprocessors;
+    public Key<DataTransformer>[] _dataTransformers;
     
     public long _seed = -1;
     public long getOrMakeRealSeed(){
@@ -1871,7 +1871,7 @@ public abstract class Model<M extends Model<M,P,O>, P extends Model.Parameters, 
   }
   protected Frame adaptFrameForScore(Frame fr, boolean computeMetrics, List<Frame> tmpFrames) {
     Frame adaptFr = new Frame(fr);
-    applyPreprocessors(adaptFr, tmpFrames);
+    applyTransformers(adaptFr, tmpFrames);
     //PUBDEV-7775: we need to apply encoding independently from adaptTestForTrain, otherwise previously encoded columns are removed during adaptation
     //if enabling this, call to adaptTesttoTrain below should use catEncoded=true, however it breaks several tests currently: necessary only for TE in combination with encoders like OHE
 //    encodeCategoricals(adaptFr, tmpFrames); 
@@ -1918,16 +1918,16 @@ public abstract class Model<M extends Model<M,P,O>, P extends Model.Parameters, 
     return output;
   }
   
-  private void applyPreprocessors(Frame fr, List<Frame> tmpFrames) {
-    if (_parms._preprocessors == null) return;
+  private void applyTransformers(Frame fr, List<Frame> tmpFrames) {
+    if (_parms._dataTransformers == null) return;
     
-    for (Key<ModelPreprocessor> key : _parms._preprocessors) {
+    for (Key<DataTransformer> key : _parms._dataTransformers) {
       DKV.prefetch(key);
     }
     Frame result = fr;
-    for (Key<ModelPreprocessor> key : _parms._preprocessors) {
-      ModelPreprocessor preprocessor = key.get();
-      result = preprocessor.processScoring(result, this);
+    for (Key<DataTransformer> key : _parms._dataTransformers) {
+      DataTransformer transformer = key.get();
+      result = transformer.transformPredict(result, this);
       tmpFrames.add(result);
     }
     fr.restructure(result.names(), result.vecs()); //inplace
