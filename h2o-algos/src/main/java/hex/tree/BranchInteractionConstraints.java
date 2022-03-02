@@ -34,6 +34,7 @@ public class BranchInteractionConstraints extends Iced<BranchInteractionConstrai
     }
     
     public Set<Integer> intersection(Set<Integer> set){
+        assert set != null : "Interaction constraints: Input set cannot be null.";
         Set<Integer> output = new HashSet<>(set);
         output.retainAll(this.allowedInteractionIndices);
         return output;
