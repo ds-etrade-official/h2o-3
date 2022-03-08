@@ -975,6 +975,8 @@ def _handle_ice(model, frame, colormap, plt, target, is_factor, column, show_log
         if not is_factor and centered:
             _center(tmp["mean_response"])
             y_label = "Response difference"
+        if show_logodds:
+            y_label = "log(odds)"
         orig_row = _handle_orig_values(is_factor, tmp, encoded_col, plt, target, model,
                                        frame, index, column, colors[i], percentile_string)
         if not _isnan(frame.as_data_frame()[column][index]):
@@ -1049,7 +1051,7 @@ def _handle_pdp(model, frame, colormap, plt, target, is_factor, column, show_log
                            nbins=20 if not is_factor else 1 + frame[column].nlevels()[0])[0])
     encoded_col = tmp.columns[0]
     response = _get_response(tmp["mean_response"], show_logodds)
-    stddev_response = _get_response(tmp["stddev_response"], show_logodds)
+    stddev_response = _get_stddev_response(tmp["stddev_response"], tmp["mean_response"], show_logodds)
 
     if is_factor:
         plt.errorbar(factor_map(tmp.get(encoded_col)), response,
@@ -1067,7 +1069,7 @@ def _handle_pdp(model, frame, colormap, plt, target, is_factor, column, show_log
             column,
             " with target = \"{}\"".format(target[0]) if target else ""
         ))
-        plt.ylabel("Mean Response")
+        plt.ylabel("log(odds)" if show_logodds else "Mean Response")
     else:
         if is_factor:
             plt.axvline(factor_map([frame[row_index, column]]), c="k", linestyle="dotted",
@@ -1080,7 +1082,7 @@ def _handle_pdp(model, frame, colormap, plt, target, is_factor, column, show_log
             row_index,
             " with target = \"{}\"".format(target[0]) if target else ""
         ))
-        plt.ylabel("Response")
+        plt.ylabel("log(odds)" if show_logodds else "Response")
     ax = plt.gca()
     box = ax.get_position()
     ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
@@ -1397,6 +1399,7 @@ def _prepare_grouping_frames(frame, grouping_column):
         frames.append(h2o.get_frame(key))
     return frames
 
+
 def _handle_grouping(frame, grouping_column, save_plot_path, model, column, target, max_levels, figsize, colormap, is_ice, row_index, show_pdp, binary_response_scale, centered):
     frames = _prepare_grouping_frames(frame, grouping_column)
     result = list()
@@ -1440,6 +1443,7 @@ def _handle_grouping(frame, grouping_column, save_plot_path, model, column, targ
         h2o.remove(curr_frame.key, False)
     return result
 
+
 def _handle_orig_values(is_factor, tmp, encoded_col, plt, target, model, frame,
                         index, column, color, percentile_string):
     PDP_RESULT_FACTOR_NAN_MARKER = '.missing(NA)'
@@ -1470,6 +1474,7 @@ def _handle_orig_values(is_factor, tmp, encoded_col, plt, target, model, frame,
         plt.scatter(orig_tmp[encoded_col], orig_tmp["mean_response"],
                     color=[color], marker='o', s=150, alpha=0.5)
         return orig_tmp
+
 
 def ice_plot(
         model,  # type: h2o.model.ModelBase
@@ -1541,20 +1546,30 @@ def ice_plot(
     return pd_ice_common(model, frame, column, None, target, max_levels, figsize, colormap,
                          save_plot_path, show_pdp, binary_response_scale, centered, True)
 
+
 def _is_binomial(model):
     if isinstance(model, h2o.estimators.stackedensemble.H2OStackedEnsembleEstimator):
         return _is_binomial_from_model(model.metalearner())
     else:
         return _is_binomial_from_model(model)
 
+
 def _is_binomial_from_model(model):
     return model._model_json["output"]["model_category"] == "Binomial"
+
 
 def _get_response(mean_response, show_logodds):
     if show_logodds:
         return np.log(mean_response / (1 - mean_response))
     else:
         return mean_response
+
+
+def _get_stddev_response(stdev_response, mean_response, show_logodds):
+    if show_logodds:
+        return 1 / np.sqrt(len(mean_response) * mean_response * (1 - mean_response))
+    else:
+        return stdev_response
 
 
 def _isnan(value):

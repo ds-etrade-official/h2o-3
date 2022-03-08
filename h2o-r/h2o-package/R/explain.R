@@ -1145,6 +1145,8 @@ handle_ice <- function(model, newdata, column, target, centered, show_logodds, s
       tmp[["mean_response"]] <- tmp[["mean_response"]] - tmp[["mean_response"]][1]
       y_label <- "Response difference"
     }
+    if (show_logodds)
+      y_label <- "log(odds)"
     tmp[["name"]] <- percentile_str
 
     subdata <- as.data.frame(newdata[as.integer(idx),])[[gsub(" ", ".", column)]]
@@ -1404,12 +1406,14 @@ handle_pdp <- function(newdata, column, target, show_logodds, row_index, models_
   )
 
   if (show_logodds) {
-    pdp[["mean_response_logodds"]] <- log(pdp$mean_response / (1 - pdp$mean_response))
-    #todo: calculate stddev logodds differently:
-    pdp[['stddev_logodds']] <- log(pdp$stddev_response / (1 - pdp$mean_stddev))
+    mean_response <- pdp$mean_response
+    pdp[["mean_response_logodds"]] <- log(mean_response / (1 - mean_response))
+    pdp[['stddev_logodds']] <- 1 / sqrt(length(mean_response) *  mean_response * (1 - mean_response))
     y_ <- get_y_values(pdp$mean_response_logodds, pdp$stddev_logodds)
+    y_label <- "log(odds)"
   } else {
     y_ <- get_y_values(pdp$mean_response, pdp$stddev_response)
+    y_label <- "Mean Response"
   }
 
   col_name <- make.names(column)
@@ -1455,7 +1459,7 @@ handle_pdp <- function(newdata, column, target, show_logodds, row_index, models_
         }
       ),
       x = column,
-      y = "Mean Response"
+      y = y_label
     ) +
     ggplot2::scale_color_brewer(type = "qual", palette = "Dark2") +
     ggplot2::scale_fill_brewer(type = "qual", palette = "Dark2") +
