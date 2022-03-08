@@ -104,7 +104,7 @@ public abstract class GamMojoModelBase extends MojoModel implements ConverterFac
       for (int ind=0; ind<_numISCol;ind++) {
         int absIndex = ind + _numCSCol;
         _numBasisSize[ind] = _num_knots_sorted[absIndex]+_spline_orders_sorted[absIndex]-2;
-        _iSplineBasis[ind] = new ISplines(_spline_orders[absIndex], _knots[absIndex][0]);
+        _iSplineBasis[ind] = new ISplines(_spline_orders_sorted[absIndex], _knots[absIndex][0]);
       }
     }
     if (_numTPCol > 0) {

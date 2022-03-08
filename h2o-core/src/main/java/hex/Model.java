@@ -2872,6 +2872,8 @@ public abstract class Model<M extends Model<M,P,O>, P extends Model.Parameters, 
           // Make a prediction
           AbstractPrediction p;
           try {
+            if (rowData.size() < 34)
+              System.out.println("Dawn");
             if (genmodel instanceof GlrmMojoModel)  // enable random seed setting to ensure reproducibility
               ((GlrmMojoModel) genmodel)._rcnt = row;
 

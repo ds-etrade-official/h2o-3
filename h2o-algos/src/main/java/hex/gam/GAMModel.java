@@ -614,9 +614,9 @@ public class GAMModel extends Model<GAMModel, GAMModel.GAMParameters, GAMModel.G
     } else if (gamifiedISCols == null) {
       return gamifiedCSCols;
     } else {  // merge two frames before returning it
-      String rapidsExpr = "(cbind "+gamifiedCSCols._key.toString()+" "+gamifiedISCols._key.toString()+")";
-      Val val = Rapids.exec(rapidsExpr);
-      return val.getFrame();
+      gamifiedCSCols.add(gamifiedISCols.names(), gamifiedISCols.removeAll());
+      Scope.track(gamifiedISCols);
+      return gamifiedCSCols;
     }
   }
 

@@ -57,8 +57,10 @@ public class GamMojoReader extends ModelMojoReader<GamMojoModelBase> {
       _model._spline_orders = readkv("spline_orders");
       _model._spline_orders_sorted = readkv("spline_orders_sorted");
       _model._numBasisSize = new int[_model._numISCol];
+      int isCounter = 0;
       for (int index=0; index<_model._numISCol; index++)
-        _model._numBasisSize[index] = _model._num_knots_sorted[index+_model._numCSCol]+_model._spline_orders_sorted[index]-2;
+        _model._numBasisSize[isCounter++] = _model._num_knots_sorted[index+_model._numCSCol]+
+                _model._spline_orders_sorted[index+_model._numCSCol]-2;
     }
     _model._totFeatureSize = readkv("total feature size");
     _model._names_no_centering = readStringArrays(_model._totFeatureSize, "_names_no_centering");
@@ -67,8 +69,8 @@ public class GamMojoReader extends ModelMojoReader<GamMojoModelBase> {
     _model._zTranspose = new double[_model._num_gam_columns][][];
     int[] gamColName_dim = readkv("gamColName_dim");
     _model._gamColNames = read2DStringArrays(gamColName_dim, "gamColNames");
-    _model._gamColNames = new String[_model._num_gam_columns][];
-    _model._gamColNamesCenter = new String[_model._num_gam_columns][];
+    //_model._gamColNames = new String[_model._num_gam_columns][];
+    //_model._gamColNamesCenter = new String[_model._num_gam_columns][];
     _model._gamPredSize = readkv("_d");
     if (_model._numTPCol > 0) {
       _model._standardize = readkv("standardize");

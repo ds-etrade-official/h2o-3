@@ -1,13 +1,9 @@
 package hex.genmodel.algos.gam;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class GamUtilsISplines {
     public static double[] fillKnots(double[] knots, int m) {
         int numKnotsDup = knots.length+2*m-2;
         double[] knotsNew = new double[numKnotsDup];
-        //List<Double> knotsNew = new ArrayList<>();
         int upperBound = m-1;
         for (int index=0; index < upperBound; index++)    // m lower knots, all equal value
             knotsNew[index]=knots[0];

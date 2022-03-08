@@ -1,9 +1,10 @@
 package hex.genmodel.algos.gam;
 
+import java.io.Serializable;
 import java.util.List;
 import static hex.genmodel.algos.gam.GamUtilsISplines.*;
 
-public class NBSplinesTypeII {
+public class NBSplinesTypeII implements Serializable {
     public final int _order;   // order of splines
     private final int _nKnots;   // number of knots of multiplicity 1
     private final double[] _knots;
@@ -47,7 +48,7 @@ public class NBSplinesTypeII {
             gamifiedValues[index] = BSplineBasis.evaluate(value, _basisFuncs[index]);
     }
     
-    public static class BSplineBasis {
+    public static class BSplineBasis implements Serializable{
         public double[] _knots;     // knots over which basis function is non-zero, include possible duplicates
         private double[] _numerator;
         private double[] _oneOverdenominator;

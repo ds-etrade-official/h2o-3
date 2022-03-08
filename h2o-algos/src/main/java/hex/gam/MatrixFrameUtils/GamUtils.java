@@ -434,10 +434,7 @@ public class GamUtils {
         setGamParameters(parms, index, csIndex++);
       } else if (parms._bs[index] == 2) {
         setGamParameters(parms, index, isIndex);
-        if (parms._spline_orders == null)
-          parms._spline_orders_sorted[isIndex++] = 1;
-        else
-          parms._spline_orders_sorted[isIndex++] = parms._spline_orders[index];
+        parms._spline_orders_sorted[isIndex++] = parms._spline_orders[index];
       } else { // thin plate spline
         setGamParameters(parms, index, tpIndex++);
       }

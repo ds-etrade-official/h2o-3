@@ -1,12 +1,13 @@
 package hex.genmodel.algos.gam;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
 import static hex.genmodel.algos.gam.GamUtilsISplines.extractKnots;
 import static hex.genmodel.algos.gam.GamUtilsISplines.fillKnots;
 
-public class ISplines {
+public class ISplines implements Serializable {
     private final double[] _knotsWDuplicates;   // expanded knots with duplicates
     private final int _order;         // order of ISplines, starts from 1, 2, ...
     public int _numIBasis;     // number of I splines over knot sequence
@@ -53,7 +54,7 @@ public class ISplines {
         return gamifiedVal;
     }
     
-    private static class ISplineBasis {
+    private static class ISplineBasis implements Serializable {
         private double[] _knots;    // knots over which function is non-zero
         private int _NSplineBasisStartIndex;    // start index of NB spline function of interest
         private int _order;

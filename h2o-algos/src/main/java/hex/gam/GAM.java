@@ -112,14 +112,18 @@ public class GAM extends ModelBuilder<GAMModel, GAMModel.GAMParameters, GAMModel
     double[][][] knots = new double[numGamCols][][]; // 1st index into gam column, 2nd index number of knots for the row
     boolean allNull = _parms._knot_ids == null;
     int csISplineInd = 0;
+    int csInd = 0;
+    int isInd = _cubicSplineNum;
     int tpInd = _cubicSplineNum+_iSplineNum;
     int gamIndex; // index into the sorted arrays with CS/I-splines front, TP back.
     for (int outIndex = 0; outIndex < _parms._gam_columns.length; outIndex++) { // go through each gam_column group
       Key<Frame> tempKey = allNull ? null : _parms._knot_ids[outIndex]; // one knot_id for each smoother
       if (_parms._bs[outIndex] == 1) // thin plate regression
         gamIndex = tpInd++;
-      else
-        gamIndex = csISplineInd++;
+      else if (_parms._bs[outIndex]==0)
+        gamIndex = csInd++;
+      else // I-spline
+        gamIndex = isInd++;
       knots[gamIndex] = new double[_parms._gam_columns[outIndex].length][];
       if (tempKey != null) {  // read knots location from Frame given by user      
         final Frame knotFrame = DKV.getGet(tempKey);
@@ -314,12 +318,19 @@ public class GAM extends ModelBuilder<GAMModel, GAMModel.GAMParameters, GAMModel
   public void checkOrChooseNumKnots() {
     if (_parms._num_knots == null)
       _parms._num_knots = new int[_parms._gam_columns.length];  // different columns may have different num knots
+    if (_parms._spline_orders == null)
+      _parms._spline_orders = new int[_parms._gam_columns.length];
     int tpCount = 0;
     for (int index = 0; index < _parms._num_knots.length; index++) {  // set zero value _num_knots
       if (_parms._knot_ids == null || (_parms._knot_ids != null && _parms._knot_ids[index] == null)) {  // knots are not specified
         int numKnots = _parms._num_knots[index];
-        if (_parms._bs[index] == 2 && numKnots < 3)
-          error("num_knots", " must >= 3 for I-splines.");
+        if (_parms._bs[index] == 2) {
+          _parms._spline_orders[index] = 3; // default to cubic splines
+          if (_parms._num_knots[index] == 0)
+            _parms._num_knots[index] = 3;
+          else if (_parms._num_knots[index] < 3)
+            error("num_knots", " must >= 3 for I-splines.");
+        }
         int naSum = 0;
         for (int innerIndex = 0; innerIndex < _parms._gam_columns[index].length; innerIndex++) {
           naSum += _parms.train().vec(_parms._gam_columns[index][innerIndex]).naCnt();
@@ -539,7 +550,7 @@ public class GAM extends ModelBuilder<GAMModel, GAMModel.GAMParameters, GAMModel
         double[][] penaltyCenter = ArrayUtils.multArrArr(ArrayUtils.multArrArr(ztranspose, expandPenaltyCS),
                 ArrayUtils.transpose(ztranspose));
         copy2DArray(penaltyCenter, _penaltyMatCenter[_gamColIndex]);
-        thinPlateFrame = ThinPlateDistanceWithKnots.applyTransform(thinPlateFrame, colNameStub+"center_", 
+        thinPlateFrame = ThinPlateDistanceWithKnots.applyTransform(thinPlateFrame, colNameStub+"center", 
                 _parms, ztranspose, _numKnotsM1);          // generate Xz as in 3.4
         _gamFrameKeysCenter[_gamColIndex] = thinPlateFrame._key;
         DKV.put(thinPlateFrame);
