@@ -1064,7 +1064,8 @@ pd_ice_common <- function(model,
                           show_pdp = TRUE,
                           binary_response_scale = c("response", "logodds"),
                           centered,
-                          is_ice = FALSE) {
+                          is_ice = FALSE,
+                          grouping_column = NULL) {
   .check_for_ggplot2("3.3.0")
   # Used by tidy evaluation in ggplot2, since rlang is not required #' @importFrom rlang hack can't be used
   if (missing(column))
@@ -2353,8 +2354,9 @@ h2o.pd_plot <- function(object,
                         target = NULL,
                         row_index = NULL,
                         max_levels = 30,
-                        binary_response_scale = c("response", "logodds")) {
-  return(pd_ice_common(object, newdata, column, target, row_index, max_levels, FALSE, binary_response_scale, FALSE, FALSE))
+                        binary_response_scale = c("response", "logodds"),
+                        grouping_column = NULL) {
+  return(pd_ice_common(object, newdata, column, target, row_index, max_levels, FALSE, binary_response_scale, FALSE, FALSE, grouping_column))
 }
 
 
@@ -2755,8 +2757,9 @@ h2o.ice_plot <- function(model,
                          max_levels = 30,
                          show_pdp = TRUE,
                          binary_response_scale = c("response", "logodds"),
-                         centered = FALSE) {
-  return(pd_ice_common(model, newdata, column, target, NULL, max_levels, show_pdp, binary_response_scale, centered, TRUE))
+                         centered = FALSE,
+                         grouping_column = NULL) {
+  return(pd_ice_common(model, newdata, column, target, NULL, max_levels, show_pdp, binary_response_scale, centered, TRUE, grouping_column))
 }
 
 

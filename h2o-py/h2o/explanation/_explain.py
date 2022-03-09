@@ -951,10 +951,9 @@ def _add_histogram(frame, column, add_rug=True, add_histogram=True, levels_order
         plt.xticks(mapping(range(nf.nlevels(column))), nf.levels(column))
     plt.ylim(ylims)
 
-def _handle_ice(model, frame, colormap, plt, target, is_factor, column, show_logodds, centered, factor_map, show_pdp):
+def _handle_ice(model, frame, colormap, plt, target, is_factor, column, show_logodds, centered, factor_map, show_pdp, **kwargs):
     frame = frame.sort(model.actual_params["response_column"])
-    deciles = [int(round(frame.nrow * dec / 10)) for dec in range(11)]
-    deciles[10] = frame.nrow - 1
+    deciles = [int(round((frame.nrow - 1) * dec / 10)) for dec in range(11)]
     colors = plt.get_cmap(colormap, 11)(list(range(11)))
     for i, index in enumerate(deciles):
         percentile_string = "{}th Percentile".format(i * 10)
@@ -969,7 +968,6 @@ def _handle_ice(model, frame, colormap, plt, target, is_factor, column, show_log
                 include_na=True
             )[0]
         )
-        response = _get_response(tmp["mean_response"], show_logodds)
         encoded_col = tmp.columns[0]
         y_label = "Response"
         if not is_factor and centered:
@@ -986,14 +984,14 @@ def _handle_ice(model, frame, colormap, plt, target, is_factor, column, show_log
             plt.scatter(factor_map(tmp.get(encoded_col)),
                         response,
                         color=[colors[i]],
-                        label="{}th Percentile".format(i * 10))
+                        label=percentile_string)
         else:
             tmp._data = tmp._data[tmp._data[:,0].argsort()]
             response = _get_response(tmp["mean_response"], show_logodds)
             plt.plot(tmp[encoded_col],
                      response,
                      color=colors[i],
-                     label="{}th Percentile".format(i * 10))
+                     label=percentile_string)
 
     if show_pdp:
         tmp = NumpyFrame(
@@ -1002,7 +1000,7 @@ def _handle_ice(model, frame, colormap, plt, target, is_factor, column, show_log
                 cols=[column],
                 plot=False,
                 targets=target,
-                nbins=20 if not is_factor else 1 + frame[column].nlevels()[0]
+                nbins=100 if not is_factor else 1 + frame[column].nlevels()[0]
             )[0]
         )
         encoded_col = tmp.columns[0]
@@ -1017,12 +1015,13 @@ def _handle_ice(model, frame, colormap, plt, target, is_factor, column, show_log
                      label="Partial Dependence")
 
     _add_histogram(frame, column)
-    plt.title("Individual Conditional Expectation for \"{}\"\non column \"{}\"{}".format(
+    plt.title("Individual Conditional Expectation for \"{}\"\non column \"{}\"{}{}".format(
         model.model_id,
         column,
         " with target = \"{}\"".format(target[0]) if target else "",
         kwargs.get("group_label", "")
     ))
+    plt.xlabel(column)
     plt.ylabel(y_label)
 
     ax = plt.gca()
@@ -1043,7 +1042,7 @@ def _handle_ice(model, frame, colormap, plt, target, is_factor, column, show_log
     return fig
 
 # todo include orig values ploting (after it will be merged in master or rebase onto underlying PR):
-def _handle_pdp(model, frame, colormap, plt, target, is_factor, column, show_logodds, factor_map, row_index):
+def _handle_pdp(model, frame, colormap, plt, target, is_factor, column, show_logodds, factor_map, row_index, **kwargs):
     color = plt.get_cmap(colormap)(0)
     tmp = NumpyFrame(
         model.partial_plot(frame, cols=[column], plot=False,
@@ -1077,10 +1076,11 @@ def _handle_pdp(model, frame, colormap, plt, target, is_factor, column, show_log
         else:
             plt.axvline(frame[row_index, column], c="k", linestyle="dotted",
                         label="Instance value")
-        plt.title("Individual Conditional Expectation for column \"{}\" and row {}{}".format(
+        plt.title("Individual Conditional Expectation for column \"{}\" and row {}{}{}".format(
             column,
             row_index,
-            " with target = \"{}\"".format(target[0]) if target else ""
+            " with target = \"{}\"".format(target[0]) if target else "",
+            kwargs.get("group_label", "")
         ))
         plt.ylabel("log(odds)" if show_logodds else "Response")
     ax = plt.gca()
@@ -1108,7 +1108,8 @@ def pd_ice_common(
         binary_response_scale="response", # type: Literal["response", "logodds"]
         centered=False, # type: bool
         is_ice=False, # type: bool
-        grouping_column=None  # type: Optional[str]
+        grouping_column=None,  # type: Optional[str]
+        **kwargs
 ):
     """
     Common base for partial dependence plot and ice plot.
@@ -1157,9 +1158,9 @@ def pd_ice_common(
         plt.figure(figsize=figsize)
         if is_ice:
             fig = _handle_ice(model, frame, colormap, plt, target, is_factor, column, show_logodds, centered, factor_map,
-                       show_pdp)
+                       show_pdp, **kwargs)
         else:
-            fig = _handle_pdp(model, frame, colormap, plt, target, is_factor, column, show_logodds, factor_map, row_index)
+            fig = _handle_pdp(model, frame, colormap, plt, target, is_factor, column, show_logodds, factor_map, row_index, **kwargs)
 
         if save_plot_path is not None:
             plt.savefig(fname=save_plot_path)
@@ -1460,7 +1461,10 @@ def _handle_orig_values(is_factor, tmp, encoded_col, plt, target, model, frame,
         warnings.warn(msg)
         return tmp
     else:
-        user_splits[column] = [orig_value]
+        if is_factor:
+            user_splits[column] = [str(orig_value)]
+        else:
+            user_splits[column] = [orig_value]
         orig_tmp = NumpyFrame(
             model.partial_plot(
                 frame,
@@ -1486,8 +1490,8 @@ def ice_plot(
         colormap="plasma",  # type: str
         save_plot_path=None,  # type: Optional[str]
         show_pdp=True,  # type: bool
-        binary_response_scale="response", # type: Literal["response", "logodds"]
-        centered=False, # type: bool
+        binary_response_scale="response",  # type: Literal["response", "logodds"]
+        centered=False,  # type: bool
         grouping_column=None,  # type: Optional[str]
         **kwargs
 ):  # type: (...) -> plt.Figure
@@ -1544,7 +1548,7 @@ def ice_plot(
     >>> gbm.ice_plot(test, column="alcohol")
     """
     return pd_ice_common(model, frame, column, None, target, max_levels, figsize, colormap,
-                         save_plot_path, show_pdp, binary_response_scale, centered, True)
+                         save_plot_path, show_pdp, binary_response_scale, centered, True, grouping_column, **kwargs)
 
 
 def _is_binomial(model):
