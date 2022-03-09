@@ -2721,7 +2721,7 @@ public class GLM extends ModelBuilder<GLMModel,GLMParameters,GLMOutput> {
       }
       if (_state._iter >= _parms._max_iterations)
         _job.warn("Reached maximum number of iterations " + _parms._max_iterations + "!");
-      if (_parms._nfolds > 1 && !Double.isNaN(_lambdaCVEstimate))
+      if (_parms._nfolds > 1 && !Double.isNaN(_lambdaCVEstimate) && _model._output._submodels.length > _bestCVSubmodel)
         _model._output.setSubmodelIdx(_model._output._best_submodel_idx = _bestCVSubmodel);  // reset best_submodel_idx to what xval has found
       else
         _model._output.pickBestModel();

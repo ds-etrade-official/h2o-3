@@ -227,8 +227,8 @@ public class Metalearners {
             parms._generate_scoring_history = true;
             parms._score_iteration_interval = (parms._valid == null) ? 5 : -1;
 
-            //specific to AUTO mode
-            parms._non_negative = true;
+            //specific to AUTO mode; non_negative constraint is not supported for multinomial tasks
+            parms._non_negative = _parms.train().vec(_parms.getResponseColumn()).cardinality() <= 2;
             //parms._alpha = new double[] {0.0, 0.25, 0.5, 0.75, 1.0};
 
             // feature columns are already homogeneous (probabilities); when standardization is enabled,
