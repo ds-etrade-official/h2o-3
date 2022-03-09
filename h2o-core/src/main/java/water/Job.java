@@ -510,15 +510,21 @@ public final class Job<T extends Keyed> extends Keyed<Job> {
     }
     final Job<?> j = (Job<?>) ice;
     if (timeMillis > 0 && !j.isStopped()) {
-      j.waitForDone(timeMillis);
+      j.waitForDone(timeMillis, false);
     }
     return j;
   }
 
-  void waitForDone(long timeMillis) {
+  void waitForDone(long timeMillis, boolean checkConsistency) {
     final Barrier2 bar = _barrier;
-    if (bar == null)
+    if (bar == null) {
+      if (checkConsistency) {
+        if (isRunning()) { // barrier is only removed after job is stopped
+          throw new IllegalStateException("Running job is in an inconsistent state (barrier is missing)");
+        }
+      }
       return;
+    }
 
     try {
       bar.get(timeMillis, TimeUnit.MILLISECONDS);
@@ -529,4 +535,8 @@ public final class Job<T extends Keyed> extends Keyed<Job> {
     }
   }
 
+  public void waitForDone(long timeoutMillis) {
+    waitForDone(timeoutMillis, true);
+  }
+  
 }
