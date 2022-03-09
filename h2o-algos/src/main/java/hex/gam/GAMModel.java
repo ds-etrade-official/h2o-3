@@ -591,6 +591,7 @@ public class GAMModel extends Model<GAMModel, GAMModel.GAMParameters, GAMModel.G
         }
       }
       gamifiedCSCols = genCSGamCols.outputFrame(Key.make(), gamColsNamesCS, null);
+      //removeVec(gamColCSSplines);
     }
     
     if (numISplineGamCol > 0) {
@@ -607,6 +608,7 @@ public class GAMModel extends Model<GAMModel, GAMModel.GAMParameters, GAMModel.G
         }
       }
       gamifiedISCols = genISGamCols.outputFrame(Key.make(), gamColsNamesIS, null);
+      //removeVec(gamColISplines);
     }
     
     if (gamifiedCSCols == null) {
@@ -618,6 +620,15 @@ public class GAMModel extends Model<GAMModel, GAMModel.GAMParameters, GAMModel.G
       Scope.track(gamifiedISCols);
       return gamifiedCSCols;
     }
+  }
+  
+  public static void removeVec(Vec[] vecs2Remove) {
+    if (vecs2Remove == null)
+      return;
+    int len = vecs2Remove.length;
+    for (int index=0; index<len; index++)
+      if (vecs2Remove[index] != null)
+        vecs2Remove[index].remove();
   }
 
   @Override
